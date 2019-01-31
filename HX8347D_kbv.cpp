@@ -1,3 +1,4 @@
+#include <SPI.h>
 #if defined(AVR)
 #include "HX8347D_kbv.h"
 
@@ -119,8 +120,8 @@ static uint8_t xchg8(uint8_t x) { write8(x); return read8(); }
 #define CD_COMMAND PIN_LOW(CD_PORT, CD_PIN)
 #define CD_DATA    PIN_HIGH(CD_PORT, CD_PIN)
 #define CD_OUTPUT  PIN_OUTPUT(CD_PORT, CD_PIN)
-#define CS_ACTIVE  { running = 0; PIN_LOW(CS_PORT, CS_PIN); }
-#define CS_IDLE    { flush(); PIN_HIGH(CS_PORT, CS_PIN); }
+#define CS_ACTIVE  { running = 0; PIN_LOW(CS_PORT, CS_PIN); SPI.beginTransaction(SPISettings(12000000,MSBFIRST,SPI_MODE0));}
+#define CS_IDLE    { flush(); PIN_HIGH(CS_PORT, CS_PIN); SPI.endTransaction(); }
 #define CS_OUTPUT  PIN_OUTPUT(CS_PORT, CS_PIN)
 #define RESET_ACTIVE  PIN_LOW(RESET_PORT, RESET_PIN)
 #define RESET_IDLE    PIN_HIGH(RESET_PORT, RESET_PIN)
