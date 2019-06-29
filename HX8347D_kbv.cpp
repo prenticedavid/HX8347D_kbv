@@ -68,6 +68,20 @@ HX8347D_kbv::HX8347D_kbv(PinName CS, PinName RS, PinName RST)
   #define SPI_SS   PB0
   #define SPI_SCK  PB1
   #define SPI_MOSI PB2
+#elif defined(__AVR_ATmega4809__)  // Arduino NANO-EVERY
+  #define CD_PORT VPORTA_OUT
+  #define CD_PIN  1 //PA1      //digital#7
+  #define CS_PORT VPORTB_OUT
+  #define CS_PIN  1 //PB1      //digital#10
+  #define RESET_PORT VPORTB_OUT
+  #define RESET_PIN  0 //PB0   //Backlight //digital#9
+  #define SD_PORT VPORTB_OUT
+  #define SD_PIN  2 //PB2      //digital#5
+  #define XPT_PORT VPORTC_OUT
+  #define XPT_PIN  6 //PC6      //digital#4
+  #define SPI_SS   1 //PB1
+  #define SPI_SCK  2 //PE2
+  #define SPI_MOSI 0 //PE0
 #else
 #error
 #endif
@@ -75,7 +89,24 @@ HX8347D_kbv::HX8347D_kbv(PinName CS, PinName RS, PinName RST)
   #define SETDDR  { CS_OUTPUT; RESET_OUTPUT; CD_OUTPUT; SD_OUTPUT; XPT_OUTPUT; }
   #define INIT()  { CS_IDLE; RESET_IDLE; SD_IDLE; XPT_IDLE; SETDDR; spi_init(); }
 
+#if defined(__AVR_ATmega4809__)
+  #define RESTORE_SPI() { SPI0_CTRLA = SPI_MASTER_bm | SPI_ENABLE_bm; }
+  static inline void spi_init(void)
+  {
+    PORTMUX.TWISPIROUTEA = (PORTMUX.TWISPIROUTEA & ~PORTMUX_SPI0_gm) | PORTMUX_SPI0_ALT2_gc;
+    PORTB_DIR |= (1<< SPI_SS);
+    PORTE_DIR |= (1<<SPI_SCK)|(1<<SPI_MOSI);
+    SPI0_CTRLA = SPI_MASTER_bm | SPI_ENABLE_bm;
+    SPI0_CTRLB = SPI_MODE_0_gc | (1<<SPI_SSD_bp); //mode#0
+  }
+static inline void write8(uint8_t x)   { SPI0_DATA = x; while ((SPI0_INTFLAGS & 0x80) == 0); }
+static inline uint8_t read8(void)      { while ((SPI0_INTFLAGS & 0x80) == 0); return SPI0_DATA; }
+static inline uint8_t xchg8(uint8_t x) { write8(x); return read8(); }
+static inline void flush(void)         { }
+static uint8_t running;
+#else
   #define SPCRVAL ((1<<SPE)|(1<<MSTR)|(0<<CPHA)|(0<<SPR0))
+  #define RESTORE_SPI() { SPCR = SPCRVAL; SPSR = (1<<SPI2X); }
   static inline void spi_init(void)
   {
 	  PORTB |= (1<<SPI_SS);
@@ -85,20 +116,22 @@ HX8347D_kbv::HX8347D_kbv(PinName CS, PinName RS, PinName RST)
 	  SPSR;
 	  SPDR;
   }
-/*
 static inline void write8(uint8_t x)   { SPDR = x; while ((SPSR & 0x80) == 0); }
 static inline uint8_t read8(void)      { while ((SPSR & 0x80) == 0); return SPDR; }
 static inline uint8_t xchg8(uint8_t x) { write8(x); return read8(); }
 static inline void flush(void)         { }
-extern uint8_t running;
-*/
+static uint8_t running;
+//extern uint8_t running;
+#endif
+
+#if 0
 //extern uint8_t running;
 static uint8_t running;
 #define write8(x)    {if (running) {while ((SPSR & 0x80) == 0);SPDR;}SPDR = x;running = 1;}
 #define flush()	     {if (running) {while ((SPSR & 0x80) == 0);}running = 0;SPDR;}
 static uint8_t read8(void)    {flush(); return SPDR; }
 static uint8_t xchg8(uint8_t x) { write8(x); return read8(); }
-
+#endif
 
 #define PIN_LOW(p, b)        (p) &= ~(1<<(b))
 #define PIN_HIGH(p, b)       (p) |= (1<<(b))
@@ -119,6 +152,8 @@ static uint8_t xchg8(uint8_t x) { write8(x); return read8(); }
 #define CD_COMMAND PIN_LOW(CD_PORT, CD_PIN)
 #define CD_DATA    PIN_HIGH(CD_PORT, CD_PIN)
 #define CD_OUTPUT  PIN_OUTPUT(CD_PORT, CD_PIN)
+//#define CS_ACTIVE  { SPCR = SPCRVAL; SPSR = (1<<SPI2X); running = 0; PIN_LOW(CS_PORT, CS_PIN); }
+//#define CS_ACTIVE  { RESTORE_SPI(); running = 0; PIN_LOW(CS_PORT, CS_PIN); }
 #define CS_ACTIVE  { running = 0; PIN_LOW(CS_PORT, CS_PIN); }
 #define CS_IDLE    { flush(); PIN_HIGH(CS_PORT, CS_PIN); }
 #define CS_OUTPUT  PIN_OUTPUT(CS_PORT, CS_PIN)
@@ -136,7 +171,7 @@ static uint8_t xchg8(uint8_t x) { write8(x); return read8(); }
 
 #define write16(x)   { uint8_t h = (x)>>8, l = x; write8(h); write8(l); }
 #define WriteCmd(x)  { flush(); CD_COMMAND; write8(x); flush(); }
-#define WriteData(x) { CD_DATA; write16(x); }
+#define WriteData(x) { CD_DATA; write8(x); }
 
 #define wait_ms(ms)  delay(ms)
 
@@ -241,9 +276,9 @@ void HX8347D_kbv::drawPixel(int16_t x, int16_t y, uint16_t color)
     // ILI934X just plots at edge if you try to write outside of the box:
     if (x < 0 || y < 0 || x >= width() || y >= height()) return;
     WriteCmdDataPair(HX8347G_COLADDRSTART_HI, x);
-    WriteCmdDataPair(HX8347G_COLADDREND_HI, x);
+//    WriteCmdDataPair(HX8347G_COLADDREND_HI, x);
     WriteCmdDataPair(HX8347G_ROWADDRSTART_HI, y);
-    WriteCmdDataPair(HX8347G_ROWADDREND_HI, y);
+//    WriteCmdDataPair(HX8347G_ROWADDREND_HI, y);
     CS_ACTIVE;
     WriteCmd(HX8347G_MEMWRITE);
     CD_DATA;
@@ -293,7 +328,7 @@ void HX8347D_kbv::fillRect(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t 
 		}
 	}
     CS_IDLE;
-//    setAddrWindow(0, 0, width()-1, height()-1);
+    setAddrWindow(0, 0, width()-1, height()-1);
 }
 
 void HX8347D_kbv::pushColors(uint16_t * block, int16_t n, bool first)
