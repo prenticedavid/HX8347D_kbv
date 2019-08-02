@@ -180,6 +180,7 @@ HX8347D_kbv::HX8347D_kbv():Adafruit_GFX(240, 320)
     INIT();
     CS_IDLE;
     RESET_IDLE;
+    _lcd_ID = 0x7575;
 }
 #endif
 
