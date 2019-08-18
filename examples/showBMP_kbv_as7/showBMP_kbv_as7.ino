@@ -1,30 +1,43 @@
-// Simple BMP display on Uno
-// library:      320x240x24 180x180x24 320x240x16             
-// SDfat (SPI)       2146ms      845ms     1735ms
-// SDfat (soft)      4095ms     1730ms     3241ms
-// SD    (SPI)       3046ms     1263ms     2441ms (7)
-// SD    (AS7)      16398ms     7384ms    12491ms (7)
+// Waveshare HX8347D shield has microSD on 3x2 SPI header.  SD_CS on pin 5
+// Uno SPI is shared with 11,12,13.  Uno solder-bridges don't care.
+// break solder-bridges for Mega, Due, Zero.  make solder-bridges for MBED
 //
-// 
+// MCUFRIEND UNO shields have microSD on pins 10, 11, 12, 13
+// The official <SD.h> library only works on the hardware SPI pins
+// e.g. 11, 12, 13 on a Uno  (or STM32 Nucleo)
+//
+// copy all your BMP files to the root directory on the microSD with your PC
+// (or another directory)
 
-#include <SPI.h>          // f.k. for Arduino-1.5.2
+#include <SPI.h>            // f.k. for Arduino-1.5.2
 //#define USE_SDFAT
-#include <SD.h>
-//#include <SdFat.h>           // Use the SdFat library
-//SdFat SD;                    // Use hardware SPI (or UNO with SD_SPI_CONFIGURATION==2)
-//SdFatSoftSpi<12, 11, 13> SD; //Bit-Bang SD_SPI_CONFIGURATION==3
+#include <SD.h>             // Use the official SD library on hardware pins
 
-#include <Adafruit_GFX.h> // Hardware-specific library
-
-//#include <MCUFRIEND_kbv.h>
-//MCUFRIEND_kbv tft;
-//#define SD_CS 10
 #include <HX8347D_kbv.h>
 HX8347D_kbv tft;
-#define SD_CS 5
+//#include <MCUFRIEND_kbv.h>
+//MCUFRIEND_kbv tft;
+
+#if defined(ESP32) || defined(HX8347D_KBV_H_)
+#define SD_CS     5
+#else
+#define SD_CS     10
+#endif
+
+#define NAMEMATCH ""        // "" matches any name
+//#define NAMEMATCH "tiger"   // *tiger*.bmp
+
+// regular 24-bit colour BMP (and 16-bit) are always supported
+//#define PALETTEDEPTH   0     // no Palette.
+#define PALETTEDEPTH   4     // support 2-color, 16-color Palette
+//#define PALETTEDEPTH   8     // support 256-colour Palette.  Unsafe for Uno.
+
+char namebuf[32] = "/";   //BMP files in root directory
+//char namebuf[32] = "/bitmaps/";  //BMP directory e.g. files in /bitmaps/*.bmp
+
+#define BUFFPIXEL      20    //increase buffer if sufficient SRAM
 
 File root;
-char namebuf[32] = "/";
 int pathlen;
 
 void setup()
@@ -37,7 +50,6 @@ void setup()
     if (ID == 0x0D3D3) ID = 0x9481;
     tft.begin(ID);
     tft.fillScreen(0x001F);
-    if (tft.height() > tft.width()) tft.setRotation(1);    //LANDSCAPE
     tft.setTextColor(0xFFFF, 0x0000);
     bool good = SD.begin(SD_CS);
     if (!good) {
@@ -62,7 +74,7 @@ void loop()
 #endif
         f.close();
         strlwr(nm);
-        if (strstr(nm, ".bmp") != NULL && strstr(nm, "") != NULL) {
+        if (strstr(nm, ".bmp") != NULL && strstr(nm, NAMEMATCH) != NULL) {
             Serial.print(namebuf);
             Serial.print(F(" - "));
             tft.fillScreen(0);
@@ -86,6 +98,9 @@ void loop()
                 case 4:
                     Serial.println(F("unsupported BMP format"));
                     break;
+                case 5:
+                    Serial.println(F("unsupported palette"));
+                    break;
                 default:
                     Serial.println(F("unknown"));
                     break;
@@ -97,22 +112,15 @@ void loop()
 
 #define BMPIMAGEOFFSET 54
 
-#define PALETTEDEPTH   8
-#define BUFFPIXEL 20
-
 uint16_t read16(File& f) {
     uint16_t result;         // read little-endian
-    result = f.read();       // LSB
-    result |= f.read() << 8; // MSB
+    f.read((uint8_t*)&result, sizeof(result));
     return result;
 }
 
 uint32_t read32(File& f) {
     uint32_t result;
-    result = f.read(); // LSB
-    result |= f.read() << 8;
-    result |= f.read() << 16;
-    result |= f.read() << 24; // MSB
+    f.read((uint8_t*)&result, sizeof(result));
     return result;
 }
 
@@ -152,6 +160,7 @@ uint8_t showBMP(char *nm, int x, int y)
     if (bmpID != 0x4D42) ret = 2; // bad ID
     else if (n != 1) ret = 3;   // too many planes
     else if (pos != 0 && pos != 3) ret = 4; // format: 0 = uncompressed, 3 = 565
+    else if (bmpDepth < 16 && bmpDepth > PALETTEDEPTH) ret = 5; // palette
     else {
         bool first = true;
         is565 = (pos == 3);               // ?already in 16-bit format
@@ -164,6 +173,7 @@ uint8_t showBMP(char *nm, int x, int y)
 
         w = bmpWidth;
         h = bmpHeight;
+        tft.setRotation(w > h ? 1 : 0);   //PORTRAIT or LANDSCAPE
         if ((x + w) >= tft.width())       // Crop area to be loaded
             w = tft.width() - x;
         if ((y + h) >= tft.height())      //
