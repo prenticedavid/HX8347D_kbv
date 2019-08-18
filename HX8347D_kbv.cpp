@@ -11,8 +11,8 @@
 #define xchg8(x)     _spi.write((uint8_t)x)
 #define write8(x)    { _spi.write((uint8_t)x); }
 #define write16(x)   { uint8_t h = (x)>>8, l = x; write8(h); write8(l); }
-#define WriteCmd(x)  { CD_COMMAND; write8(x); }
-#define WriteData(x) { CD_DATA; write8(x); }
+#define WriteCmd(x)  { CD_COMMAND; write8(x); CD_DATA; } //check flush()
+#define WriteData(x) { write8(x); }
 
 HX8347D_kbv::HX8347D_kbv(PinName CS, PinName RS, PinName RST)
     : _lcd_pin_rs(RS), _lcd_pin_cs(CS), _lcd_pin_reset(RST), _spi(D11, D12, D13), Adafruit_GFX(240, 320)
@@ -24,101 +24,119 @@ HX8347D_kbv::HX8347D_kbv(PinName CS, PinName RS, PinName RST)
 }
 #else
 #if 1
-  #include <avr/pgmspace.h>
+#include <avr/pgmspace.h>
 #if 0
 #elif defined(__AVR_ATmega328P__)
-  #define CD_PORT PORTD
-  #define CD_PIN  PD7      //digital#7
-  #define CS_PORT PORTB
-  #define CS_PIN  PB2      //digital#10
-  #define RESET_PORT PORTB
-  #define RESET_PIN  PB1   //Backlight //digital#9
-  #define SD_PORT PORTD
-  #define SD_PIN  PD5      //digital#5
-  #define XPT_PORT PORTD
-  #define XPT_PIN  PD4      //digital#4
-  #define SPI_SS   PB2
-  #define SPI_SCK  PB5
-  #define SPI_MOSI PB3
+#define CD_PORT PORTD
+#define CD_PIN  PD7      //digital#7
+#define CS_PORT PORTB
+#define CS_PIN  PB2      //digital#10
+#define RESET_PORT PORTB
+#define RESET_PIN  PB1   //Backlight //digital#9
+#define SD_PORT PORTD
+#define SD_PIN  PD5      //digital#5
+#define XPT_PORT PORTD
+#define XPT_PIN  PD4      //digital#4
+#define SPI_SS   PB2
+#define SPI_SCK  PB5
+#define SPI_MOSI PB3
 #elif defined(__AVR_ATmega32U4__)
-  #define CD_PORT PORTE
-  #define CD_PIN  PE6      //digital#7
-  #define CS_PORT PORTB
-  #define CS_PIN  PB6      //digital#10
-  #define RESET_PORT PORTB
-  #define RESET_PIN  PB5   //Backlight //digital#9
-  #define SD_PORT PORTC
-  #define SD_PIN  PC6      //digital#5
-  #define XPT_PORT PORTD
-  #define XPT_PIN  PD4      //digital#4
-  #define SPI_SS   PB0
-  #define SPI_SCK  PB1
-  #define SPI_MOSI PB2
+#define CD_PORT PORTE
+#define CD_PIN  PE6      //digital#7
+#define CS_PORT PORTB
+#define CS_PIN  PB6      //digital#10
+#define RESET_PORT PORTB
+#define RESET_PIN  PB5   //Backlight //digital#9
+#define SD_PORT PORTC
+#define SD_PIN  PC6      //digital#5
+#define XPT_PORT PORTD
+#define XPT_PIN  PD4      //digital#4
+#define SPI_SS   PB0
+#define SPI_SCK  PB1
+#define SPI_MOSI PB2
 #elif defined(__AVR_ATmega2560__)
-  #define CD_PORT PORTH
-  #define CD_PIN  PH4      //digital#7
-  #define CS_PORT PORTB
-  #define CS_PIN  PB4      //digital#10
-  #define RESET_PORT PORTH
-  #define RESET_PIN  PH6   //Backlight //digital#9
-  #define SD_PORT PORTE
-  #define SD_PIN  PE3      //digital#5
-  #define XPT_PORT PORTG
-  #define XPT_PIN  PG5      //digital#4
-  #define SPI_SS   PB0
-  #define SPI_SCK  PB1
-  #define SPI_MOSI PB2
+#define CD_PORT PORTH
+#define CD_PIN  PH4      //digital#7
+#define CS_PORT PORTB
+#define CS_PIN  PB4      //digital#10
+#define RESET_PORT PORTH
+#define RESET_PIN  PH6   //Backlight //digital#9
+#define SD_PORT PORTE
+#define SD_PIN  PE3      //digital#5
+#define XPT_PORT PORTG
+#define XPT_PIN  PG5      //digital#4
+#define SPI_SS   PB0
+#define SPI_SCK  PB1
+#define SPI_MOSI PB2
 #elif defined(__AVR_ATmega4809__)  // Arduino NANO-EVERY
-  #define CD_PORT VPORTA_OUT
-  #define CD_PIN  1 //PA1      //digital#7
-  #define CS_PORT VPORTB_OUT
-  #define CS_PIN  1 //PB1      //digital#10
-  #define RESET_PORT VPORTB_OUT
-  #define RESET_PIN  0 //PB0   //Backlight //digital#9
-  #define SD_PORT VPORTB_OUT
-  #define SD_PIN  2 //PB2      //digital#5
-  #define XPT_PORT VPORTC_OUT
-  #define XPT_PIN  6 //PC6      //digital#4
-  #define SPI_SS   1 //PB1
-  #define SPI_SCK  2 //PE2
-  #define SPI_MOSI 0 //PE0
+#define CD_PORT VPORTA_OUT
+#define CD_PIN  1 //PA1      //digital#7
+#define CS_PORT VPORTB_OUT
+#define CS_PIN  1 //PB1      //digital#10
+#define RESET_PORT VPORTB_OUT
+#define RESET_PIN  0 //PB0   //Backlight //digital#9
+#define SD_PORT VPORTB_OUT
+#define SD_PIN  2 //PB2      //digital#5
+#define XPT_PORT VPORTC_OUT
+#define XPT_PIN  6 //PC6      //digital#4
+#define SPI_SS   1 //PB1
+#define SPI_SCK  2 //PE2
+#define SPI_MOSI 0 //PE0
 #else
 #error
 #endif
 
-  #define SETDDR  { CS_OUTPUT; RESET_OUTPUT; CD_OUTPUT; SD_OUTPUT; XPT_OUTPUT; }
-  #define INIT()  { CS_IDLE; RESET_IDLE; SD_IDLE; XPT_IDLE; SETDDR; spi_init(); }
+#define SETDDR  { CS_OUTPUT; RESET_OUTPUT; CD_OUTPUT; SD_OUTPUT; XPT_OUTPUT; }
+#define INIT()  { CS_IDLE; RESET_IDLE; SD_IDLE; XPT_IDLE; SETDDR; spi_init(); }
 
 #if defined(__AVR_ATmega4809__)
-  #define RESTORE_SPI() { SPI0_CTRLA = SPI_MASTER_bm | SPI_ENABLE_bm; }
-  static inline void spi_init(void)
-  {
+#define RESTORE_SPI() { SPI0_CTRLA = SPI_MASTER_bm | SPI_ENABLE_bm; }
+static inline void spi_init(void)
+{
     PORTMUX.TWISPIROUTEA = (PORTMUX.TWISPIROUTEA & ~PORTMUX_SPI0_gm) | PORTMUX_SPI0_ALT2_gc;
-    PORTB_DIR |= (1<< SPI_SS);
-    PORTE_DIR |= (1<<SPI_SCK)|(1<<SPI_MOSI);
+    PORTB_DIR |= (1 << SPI_SS);
+    PORTE_DIR |= (1 << SPI_SCK) | (1 << SPI_MOSI);
     SPI0_CTRLA = SPI_MASTER_bm | SPI_ENABLE_bm;
-    SPI0_CTRLB = SPI_MODE_0_gc | (1<<SPI_SSD_bp); //mode#0
-  }
-static inline void write8(uint8_t x)   { SPI0_DATA = x; while ((SPI0_INTFLAGS & 0x80) == 0); }
-static inline uint8_t read8(void)      { while ((SPI0_INTFLAGS & 0x80) == 0); return SPI0_DATA; }
-static inline uint8_t xchg8(uint8_t x) { write8(x); return read8(); }
+    SPI0_CTRLB = SPI_MODE_0_gc | (1 << SPI_SSD_bp); //mode#0
+}
+static inline void write8(uint8_t x)   {
+    SPI0_DATA = x;
+    while ((SPI0_INTFLAGS & 0x80) == 0);
+}
+static inline uint8_t read8(void)      {
+    while ((SPI0_INTFLAGS & 0x80) == 0);
+    return SPI0_DATA;
+}
+static inline uint8_t xchg8(uint8_t x) {
+    write8(x);
+    return read8();
+}
 static inline void flush(void)         { }
 static uint8_t running;
 #else
-  #define SPCRVAL ((1<<SPE)|(1<<MSTR)|(0<<CPHA)|(0<<SPR0))
-  #define RESTORE_SPI() { SPCR = SPCRVAL; SPSR = (1<<SPI2X); }
-  static inline void spi_init(void)
-  {
-	  PORTB |= (1<<SPI_SS);
-	  DDRB |= (1<<SPI_SS)|(1<<SPI_SCK)|(1<<SPI_MOSI);
-	  SPCR = SPCRVAL;
-	  SPSR = (1<<SPI2X);
-	  SPSR;
-	  SPDR;
-  }
-static inline void write8(uint8_t x)   { SPDR = x; while ((SPSR & 0x80) == 0); }
-static inline uint8_t read8(void)      { while ((SPSR & 0x80) == 0); return SPDR; }
-static inline uint8_t xchg8(uint8_t x) { write8(x); return read8(); }
+#define SPCRVAL ((1<<SPE)|(1<<MSTR)|(0<<CPHA)|(0<<SPR0))
+#define RESTORE_SPI() { SPCR = SPCRVAL; SPSR = (1<<SPI2X); }
+static inline void spi_init(void)
+{
+    PORTB |= (1 << SPI_SS);
+    DDRB |= (1 << SPI_SS) | (1 << SPI_SCK) | (1 << SPI_MOSI);
+    SPCR = SPCRVAL;
+    SPSR = (1 << SPI2X);
+    SPSR;
+    SPDR;
+}
+static inline void write8(uint8_t x)   {
+    SPDR = x;
+    while ((SPSR & 0x80) == 0);
+}
+static inline uint8_t read8(void)      {
+    while ((SPSR & 0x80) == 0);
+    return SPDR;
+}
+static inline uint8_t xchg8(uint8_t x) {
+    write8(x);
+    return read8();
+}
 static inline void flush(void)         { }
 static uint8_t running;
 //extern uint8_t running;
@@ -128,9 +146,15 @@ static uint8_t running;
 //extern uint8_t running;
 static uint8_t running;
 #define write8(x)    {if (running) {while ((SPSR & 0x80) == 0);SPDR;}SPDR = x;running = 1;}
-#define flush()	     {if (running) {while ((SPSR & 0x80) == 0);}running = 0;SPDR;}
-static uint8_t read8(void)    {flush(); return SPDR; }
-static uint8_t xchg8(uint8_t x) { write8(x); return read8(); }
+#define flush()      {if (running) {while ((SPSR & 0x80) == 0);}running = 0;SPDR;}
+static uint8_t read8(void)    {
+    flush();
+    return SPDR;
+}
+static uint8_t xchg8(uint8_t x) {
+    write8(x);
+    return read8();
+}
 #endif
 
 #define PIN_LOW(p, b)        (p) &= ~(1<<(b))
@@ -170,12 +194,12 @@ static uint8_t xchg8(uint8_t x) { write8(x); return read8(); }
 //uint8_t running = 0;
 
 #define write16(x)   { uint8_t h = (x)>>8, l = x; write8(h); write8(l); }
-#define WriteCmd(x)  { flush(); CD_COMMAND; write8(x); flush(); }
-#define WriteData(x) { CD_DATA; write8(x); }
+#define WriteCmd(x)  { flush(); CD_COMMAND; write8(x); flush(); CD_DATA; }
+#define WriteData(x) { write8(x); }
 
 #define wait_ms(ms)  delay(ms)
 
-HX8347D_kbv::HX8347D_kbv():Adafruit_GFX(240, 320)
+HX8347D_kbv::HX8347D_kbv(): Adafruit_GFX(240, 320)
 {
     INIT();
     CS_IDLE;
@@ -186,11 +210,11 @@ HX8347D_kbv::HX8347D_kbv():Adafruit_GFX(240, 320)
 
 void HX8347D_kbv::reset(void)
 {
-	wait_ms(50);
-	RESET_ACTIVE;
-	wait_ms(100);
-	RESET_IDLE;
-	wait_ms(100);
+    wait_ms(50);
+    RESET_ACTIVE;
+    wait_ms(100);
+    RESET_IDLE;
+    wait_ms(100);
 }
 
 void HX8347D_kbv::WriteCmdData(uint16_t cmd, uint16_t dat)
@@ -216,39 +240,12 @@ void HX8347D_kbv::WriteCmdData(uint16_t cmd, uint16_t dat)
 
 uint16_t HX8347D_kbv::readReg(uint16_t reg)
 {
-    uint8_t h, l;
-    CS_ACTIVE;
-    WriteCmd(reg);
-    CD_DATA;                    //should do a flush()
-
-//    h = xchg8(0xFF);
-    l = xchg8(0xFF);
-    CS_IDLE;
-    return (h << 8) | l;
+    return 0;
 }
 
 int16_t HX8347D_kbv::readGRAM(int16_t x, int16_t y, uint16_t * block, int16_t w, int16_t h)
 {
     return -1;          // .kbv HX8347-D has IM=0110. HX8347-G is r/w IM=1110 (4-wire Serial II)
-/*
-    uint8_t r, g, b;
-    int16_t n = w * h;    // we are NEVER going to read > 32k pixels at once
-
-    setAddrWindow(x, y, x + n - 1, y + h - 1);
-    CS_ACTIVE;
-    WriteCmd(HX8347G_MEMREAD);
-    CD_DATA;
-
-    r = xchg8(0xFF);    // needs 2 dummy read
-    g = xchg8(0xFF);    // needs 2 dummy read
-    while (n-- > 0) {
-        r = xchg8(0xFF);
-        g = xchg8(0xFF);
-		*block++ = (r << 8u)|(g);
-    }
-    CS_IDLE;
-    return 0;
-*/
 }
 
 void HX8347D_kbv::setRotation(uint8_t r)
@@ -274,22 +271,18 @@ void HX8347D_kbv::setRotation(uint8_t r)
 
 void HX8347D_kbv::drawPixel(int16_t x, int16_t y, uint16_t color)
 {
-    // ILI934X just plots at edge if you try to write outside of the box:
     if (x < 0 || y < 0 || x >= width() || y >= height()) return;
     WriteCmdDataPair(HX8347G_COLADDRSTART_HI, x);
-//    WriteCmdDataPair(HX8347G_COLADDREND_HI, x);
     WriteCmdDataPair(HX8347G_ROWADDRSTART_HI, y);
-//    WriteCmdDataPair(HX8347G_ROWADDREND_HI, y);
     CS_ACTIVE;
     WriteCmd(HX8347G_MEMWRITE);
-    CD_DATA;
     write16(color);
     CS_IDLE;
 }
 
 void HX8347D_kbv::setAddrWindow(int16_t x, int16_t y, int16_t x1, int16_t y1)
 {
-    CS_ACTIVE; 
+    CS_ACTIVE;
     WriteCmdDataPair(HX8347G_COLADDRSTART_HI, x);
     WriteCmdDataPair(HX8347G_COLADDREND_HI, x1);
     WriteCmdDataPair(HX8347G_ROWADDRSTART_HI, y);
@@ -297,39 +290,68 @@ void HX8347D_kbv::setAddrWindow(int16_t x, int16_t y, int16_t x1, int16_t y1)
     CS_IDLE;
 }
 
+#define NOP             asm("nop");
 void HX8347D_kbv::fillRect(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t color)
 {
     int16_t end;
-    if (w < 0) { w = -w; x -= w; }   //+ve w
+    if (w < 0) {
+        w = -w;    //+ve w
+        x -= w;
+    }
     end = x + w;
     if (x < 0) x = 0;
     if (end > width()) end = width();
     w = end - x;
-    if (h < 0) { h = -h; y -= h; }   //+ve h
+    if (h < 0) {
+        h = -h;    //+ve h
+        y -= h;
+    }
     end = y + h;
     if (y < 0) y = 0;
     if (end > height()) end = height();
     h = end - y;
-    setAddrWindow(x, y, x+w-1, y+h-1);
+    setAddrWindow(x, y, x + w - 1, y + h - 1);
     CS_ACTIVE;
     WriteCmd(HX8347G_MEMWRITE);
-    CD_DATA;
-	if (h > w) { end = h; h = w; w = end; }
-	uint8_t hi = color >> 8;
-	uint8_t lo = color;
-	while (h-- > 0) {
-		for (int16_t i = w; i-- > 0; ) {
-			write8(hi);
-			asm("nop");
-			asm("nop");
-			asm("nop");
-			write8(lo);
-			//			asm("nop");
-			//			asm("nop");
-		}
-	}
+#if 0
+    uint8_t hi = color >> 8;
+    uint8_t lo = color;
+    int32_t cnt = w * h - 1;
+    SPDR = hi;
+    while (cnt-- > 0) {
+        while ((SPSR & 0x80) == 0);
+        SPDR;
+        SPDR = lo;
+        while ((SPSR & 0x80) == 0);
+        SPDR;
+        SPDR = hi;
+    }
+    while ((SPSR & 0x80) == 0);       
+    SPDR;
+    SPDR = lo;
+    while ((SPSR & 0x80) == 0);
+    SPDR;
+#else
+    if (h > w) {
+        end = h;
+        h = w;
+        w = end;
+    }
+    uint8_t hi = color >> 8;
+    uint8_t lo = color;
+    while (h-- > 0) {
+        for (int16_t i = w; i-- > 0; ) {
+            SPDR = hi; NOP; while ((SPSR & 0x80) == 0);
+            SPDR = lo; NOP; while ((SPSR & 0x80) == 0);
+            //write8(hi);
+            //NOP;
+            //write8(lo);
+            //NOP; NOP;
+        }
+    }
+#endif
     CS_IDLE;
-    setAddrWindow(0, 0, width()-1, height()-1);
+    setAddrWindow(0, 0, width() - 1, height() - 1);
 }
 
 void HX8347D_kbv::pushColors(uint16_t * block, int16_t n, bool first)
@@ -339,7 +361,6 @@ void HX8347D_kbv::pushColors(uint16_t * block, int16_t n, bool first)
     if (first) {
         WriteCmd(HX8347G_MEMWRITE);
     }
-    CD_DATA;
     while (n-- > 0) {
         color = *block++;
         write16(color);
@@ -350,30 +371,25 @@ void HX8347D_kbv::pushColors(uint16_t * block, int16_t n, bool first)
 void HX8347D_kbv::pushColors(const uint8_t * block, int16_t n, bool first)
 {
     uint16_t color;
-	uint8_t h, l;
-	CS_ACTIVE;
+    uint8_t h, l;
+    CS_ACTIVE;
     if (first) {
         WriteCmd(HX8347G_MEMWRITE);
     }
-    CD_DATA;
     while (n-- > 0) {
         l = pgm_read_byte(block++);
         h = pgm_read_byte(block++);
-        color = h<<8 | l;
-		write16(color);
+        color = h << 8 | l;
+        write16(color);
     }
     CS_IDLE;
 }
 
 void HX8347D_kbv::invertDisplay(bool i)
 {
-    uint8_t val = 0x00;
-//    val = readReg(0x36);  //.kbv HX8347-D can't read SPI.
-	if (i) val |= 2;
-	else val &= ~2;
-	WriteCmdData(0x36, val);
+    WriteCmdData(0x36, i ? 2 : 0);
 }
-    
+
 void HX8347D_kbv::vertScroll(int16_t top, int16_t scrollines, int16_t offset)
 {
     int16_t bfa = HEIGHT - top - scrollines;  // bottom fixed area
@@ -386,138 +402,87 @@ void HX8347D_kbv::vertScroll(int16_t top, int16_t scrollines, int16_t offset)
     WriteCmdDataPair(0x0E, top);        //TOP
     WriteCmdDataPair(0x10, scrollines);
     WriteCmdDataPair(0x12, 320 - top - scrollines);
-    WriteCmdDataPair(0x14, vsp);  //VL# 
+    WriteCmdDataPair(0x14, vsp);  //VL#
 
 }
 
 #define TFTLCD_DELAY  0xFF
 
-static const uint8_t HX8347G_regValues[] PROGMEM = {
-  0x2E           , 0x89,
-  0x29           , 0x8F,
-  0x2B           , 0x02,
-  0xE2           , 0x00,
-  0xE4           , 0x01,
-  0xE5           , 0x10,
-  0xE6           , 0x01,
-  0xE7           , 0x10,
-  0xE8           , 0x70,
-  0xF2           , 0x00,
-  0xEA           , 0x00,
-  0xEB           , 0x20,
-  0xEC           , 0x3C,
-  0xED           , 0xC8,
-  0xE9           , 0x38,
-  0xF1           , 0x01,
-
-  // skip gamma, do later
-
-  0x1B           , 0x1A,
-  0x1A           , 0x02,
-  0x24           , 0x61,
-  0x25           , 0x5C,
-  
-  0x18           , 0x36,
-  0x19           , 0x01,
-  0x1F           , 0x88,
-  TFTLCD_DELAY   , 5   , // delay 5 ms
-  0x1F           , 0x80,
-  TFTLCD_DELAY   , 5   ,
-  0x1F           , 0x90,
-  TFTLCD_DELAY   , 5   ,
-  0x1F           , 0xD4,
-  TFTLCD_DELAY   , 5   ,
-  0x17           , 0x05,
-
-  0x36           , 0x00, // .kbv was 0x09
-  0x28           , 0x38,
-  TFTLCD_DELAY   , 40  ,
-  0x28           , 0x3C,
-
-  0x02           , 0x00,
-  0x03           , 0x00,
-  0x04           , 0x00,
-  0x05           , 0xEF,
-  0x06           , 0x00,
-  0x07           , 0x00,
-  0x08           , 0x01,
-  0x09           , 0x3F
-};
 static const uint8_t HX8347G_2_regValues[] PROGMEM = {
-	0xEA,0x00, //PTBA[15:8]
-	0xEB,0x20, //PTBA[7:0]
-	0xEC,0x0C, //STBA[15:8]
-	0xED,0xC4, //STBA[7:0]
-	0xE8,0x38, //OPON[7:0]
-	0xE9,0x10, //OPON1[7:0]
-	0xF1,0x01, //OTPS1B
-	0xF2,0x10, //GEN
-	//Gamma 2.2 Setting
-	0x40,0x01, //
-	0x41,0x00, //
-	0x42,0x00, //
-	0x43,0x10, //
-	0x44,0x0E, //
-	0x45,0x24, //
-	0x46,0x04, //
-	0x47,0x50, //
-	0x48,0x02, //
-	0x49,0x13, //
-	0x4A,0x19, //
-	0x4B,0x19, //
-	0x4C,0x16, //
-	0x50,0x1B, //
-	0x51,0x31, //
-	0x52,0x2F, //
-	0x53,0x3F, //
-	0x54,0x3F, //
-	0x55,0x3E, //
-	0x56,0x2F, //
-	0x57,0x7B, //
-	0x58,0x09, //
-	0x59,0x06, //
-	0x5A,0x06, //
-	0x5B,0x0C, //
-	0x5C,0x1D, //
-	0x5D,0xCC, //
-	//Power Voltage Setting
-	0x1B,0x1B, //VRH=4.65V
-	0x1A,0x01, //BT (VGH~15V,VGL~-10V,DDVDH~5V)
-	0x24,0x2F, //VMH(VCOM High voltage ~3.2V)
-	0x25,0x57, //VML(VCOM Low voltage -1.2V)
-	//****VCOM offset**///
-	0x23,0x88, //for Flicker adjust //can reload from OTP
-	//Power on Setting
-	0x18,0x34, //I/P_RADJ,N/P_RADJ, Normal mode 60Hz
-	0x19,0x01, //OSC_EN='1', start Osc
-	0x01,0x00, //DP_STB='0', out deep sleep
-	0x1F,0x88,// GAS=1, VOMG=00, PON=0, DK=1, XDK=0, DVDH_TRI=0, STB=0
-	TFTLCD_DELAY, 5,
-	0x1F,0x80,// GAS=1, VOMG=00, PON=0, DK=0, XDK=0, DVDH_TRI=0, STB=0
-	TFTLCD_DELAY, 5,
-	0x1F,0x90,// GAS=1, VOMG=00, PON=1, DK=0, XDK=0, DVDH_TRI=0, STB=0
-	TFTLCD_DELAY, 5,
-	0x1F,0xD0,// GAS=1, VOMG=10, PON=1, DK=0, XDK=0, DDVDH_TRI=0, STB=0
-	TFTLCD_DELAY, 5,
-	//262k/65k color selection
-	0x17,0x05, //default 0x06 262k color // 0x05 65k color
-	//SET PANEL
-	0x36,0x00, //SS_P, GS_P,REV_P,BGR_P
-	//Display ON Setting
-	0x28,0x38, //GON=1, DTE=1, D=1000
-	TFTLCD_DELAY, 40,
-	0x28,0x3F, //GON=1, DTE=1, D=1100
+    0xEA, 0x00, //PTBA[15:8]
+    0xEB, 0x20, //PTBA[7:0]
+    0xEC, 0x0C, //STBA[15:8]
+    0xED, 0xC4, //STBA[7:0]
+    0xE8, 0x38, //OPON[7:0]
+    0xE9, 0x10, //OPON1[7:0]
+    0xF1, 0x01, //OTPS1B
+    0xF2, 0x10, //GEN
+    //Gamma 2.2 Setting
+    0x40, 0x01, //
+    0x41, 0x00, //
+    0x42, 0x00, //
+    0x43, 0x10, //
+    0x44, 0x0E, //
+    0x45, 0x24, //
+    0x46, 0x04, //
+    0x47, 0x50, //
+    0x48, 0x02, //
+    0x49, 0x13, //
+    0x4A, 0x19, //
+    0x4B, 0x19, //
+    0x4C, 0x16, //
+    0x50, 0x1B, //
+    0x51, 0x31, //
+    0x52, 0x2F, //
+    0x53, 0x3F, //
+    0x54, 0x3F, //
+    0x55, 0x3E, //
+    0x56, 0x2F, //
+    0x57, 0x7B, //
+    0x58, 0x09, //
+    0x59, 0x06, //
+    0x5A, 0x06, //
+    0x5B, 0x0C, //
+    0x5C, 0x1D, //
+    0x5D, 0xCC, //
+    //Power Voltage Setting
+    0x1B, 0x1B, //VRH=4.65V
+    0x1A, 0x01, //BT (VGH~15V,VGL~-10V,DDVDH~5V)
+    0x24, 0x2F, //VMH(VCOM High voltage ~3.2V)
+    0x25, 0x57, //VML(VCOM Low voltage -1.2V)
+    //****VCOM offset**///
+    0x23, 0x88, //for Flicker adjust //can reload from OTP
+    //Power on Setting
+    0x18, 0x34, //I/P_RADJ,N/P_RADJ, Normal mode 60Hz
+    0x19, 0x01, //OSC_EN='1', start Osc
+    0x01, 0x00, //DP_STB='0', out deep sleep
+    0x1F, 0x88, // GAS=1, VOMG=00, PON=0, DK=1, XDK=0, DVDH_TRI=0, STB=0
+    TFTLCD_DELAY, 5,
+    0x1F, 0x80, // GAS=1, VOMG=00, PON=0, DK=0, XDK=0, DVDH_TRI=0, STB=0
+    TFTLCD_DELAY, 5,
+    0x1F, 0x90, // GAS=1, VOMG=00, PON=1, DK=0, XDK=0, DVDH_TRI=0, STB=0
+    TFTLCD_DELAY, 5,
+    0x1F, 0xD0, // GAS=1, VOMG=10, PON=1, DK=0, XDK=0, DDVDH_TRI=0, STB=0
+    TFTLCD_DELAY, 5,
+    //262k/65k color selection
+    0x17, 0x05, //default 0x06 262k color // 0x05 65k color
+    //SET PANEL
+    0x36, 0x00, //SS_P, GS_P,REV_P,BGR_P
+    //Display ON Setting
+    0x28, 0x38, //GON=1, DTE=1, D=1000
+    TFTLCD_DELAY, 40,
+    0x28, 0x3F, //GON=1, DTE=1, D=1100
 
-	0x16,0x18,
-	//Set GRAM Area
-	0x02,0x00,
-	0x03,0x00, //Column Start
-	0x04,0x00,
-	0x05,0xEF, //Column End
-	0x06,0x00,
-	0x07,0x00, //Row Start
-	0x08,0x01,
-	0x09,0x3F, //Row End
+    0x16, 0x18,
+    //Set GRAM Area
+    0x02, 0x00,
+    0x03, 0x00, //Column Start
+    0x04, 0x00,
+    0x05, 0xEF, //Column End
+    0x06, 0x00,
+    0x07, 0x00, //Row Start
+    0x08, 0x01,
+    0x09, 0x3F, //Row End
 };
 
 void HX8347D_kbv::begin(uint16_t ID)
